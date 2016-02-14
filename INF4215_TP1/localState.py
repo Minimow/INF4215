@@ -10,7 +10,7 @@ class LocalState(State):
         #Filled when creating the root state
         self.K = 0
         self.C = 0
-        self.positions = []
+        self.houses = []
 
         #state variables
         # first item is position, second is radius
@@ -41,28 +41,48 @@ class LocalState(State):
             print map(str, self.towers[x])
 
     # State is updated according to action
-    def executeAction(self,action):
-        if action == "new":
-            newPosition = self.availablesPositions[0]
-            houseIndex = self.getNearestHouseIndex(newPosition)
-            positionToReach = self.unreached[houseIndex]
-            radius = Point.distanceToPoint(newPosition, positionToReach)
-            self.towers.append([newPosition, radius])
-            del self.availablesPositions[0]
-            del self.unreached[houseIndex]
-        elif action == "move":
+    def executeAction(self,(action, towerId, houseId)):
+        if action == 'addRange':
+            tower = self.towers[towerId]
+            newRadius = Point.distanceToPoint(tower[0], self.houses[houseId])
+            self.towers[towerId][1] = math.ceil(newRadius)
+            self.removeIncludedHouses(tower)
+        elif action == "addTower":
+            radius = Point.distanceToPoint(self.availablesPositions[towerId], self.houses[houseId])
+            if (radius < 1):
+                radius = 1
+            newTower = [self.availablesPositions[towerId], math.ceil(radius)]
+            self.towers.append(newTower)
+            self.availablesPositions.pop(towerId)
+            self.removeIncludedHouses(newTower)
+        elif action == "removeTower":
             return 0
-        elif action =="remove":
+        elif action =="rem55ove":
             return 0
+
+    def removeIncludedHouses(self, tower):
+        housesLeft = copy.deepcopy(self.houses)
+
+        for i in range(0, len(self.houses)):
+            tPosition = tower[0]
+            if Point.distanceToPoint(tPosition, self.houses[i]) <= tower[1]:
+                print "unreached"
+                print ','.join(map(str, self.unreached))
+                print "house to remove"
+                print self.houses[i]
+                if self.houses[i] in self.unreached:
+                    self.unreached.remove(self.houses[i])
 
     # Returns a list of possible actions with the current state
     def possibleActions(self):
         actions = []
-        if self.availablesPositions != []:
-            actions.append("new")
-        if self.towers != []:
-            actions.append("remove")
-            actions.append("move")
+        for i in range(len(self.availablesPositions)):
+            actions.append(('addTower', i, self.closestHouse(self.availablesPositions[i])))
+        if len(self.towers) > 0:
+            for i in range(len(self.towers)):
+                actions.append(('addRange', i, self.closestHouse(self.availablesPositions[i])))
+            for i in range(len(self.towers)):
+                actions.append(('removeTower', i, self.closestHouse(self.availablesPositions[i])))
         return actions
 
     # Returns the cost of executing some action
@@ -80,40 +100,25 @@ class LocalState(State):
     # By default, value is 0
     def heuristic(self):
         minimalCost = min(self.K, self.K + (self.C))
-        return len(self.unreached) * minimalCost / len(self.positions)
+        return len(self.unreached) * minimalCost / len(self.houses)
 
-    def getNearestHouseIndex(self, point):
-        index = 0
-        minDist = 0
-        for i in range(0, len(self.unreached)):
-            dist = Point.distanceToPoint(point, self.unreached[i])
-            if i == 0:
-                minDist = dist
-                index = i
-            elif dist < minDist:
-                minDist = dist
-                index = i
-        return index
-
-    def getHousesInArea(self, point, radius, houses):
-        minX = point.x - radius
-        maxX = point.x + radius
-        minY = point.y - radius
-        maxY = point.y + radius
-
-        index = 0
-        indexes = []
-        for housePosition in houses:
-            if Point.distanceToPoint(point, housePosition) <= radius:
-               indexes.append(index)
-            index = index + 1
-        return indexes
+    def closestHouse(self, position):
+            nbHouses = len(self.houses)
+            min = sys.maxint
+            candidat = 0
+            for i in range(nbHouses):
+                house = self.houses[i]
+                distPoint = Point.distanceToPoint(house, position)
+                if(distPoint < min):
+                    min = distPoint
+                    candidat = i
+            return candidat
 
 def search(positions, K, C):
     initialState = LocalState([], getAvailablePositions(positions), positions)
     initialState.C = C
     initialState.K = K
-    initialState.positions = copy.deepcopy(positions)
+    initialState.houses = copy.deepcopy(positions)
     simulated_annealing_search(initialState)
 
 def getAvailablePositions(positions):
@@ -163,7 +168,8 @@ def simulated_annealing_search(initialState,T = 100,limit = 0.1,maxSteps = 1000)
         temperature = decrease(temperature)
     return None
 
-positions = [Point(30,0), Point(10,10), Point(20,20), Point(30,40), Point(50,40)]
+print "hello"
+positions = [Point(6,0), Point(2,2), Point(4,4), Point(6,8), Point(10,8)]
 K = 200
 C = 1
 search(positions, K, C)

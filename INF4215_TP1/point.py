@@ -16,5 +16,11 @@ class Point:
   def __sub__(self, point):
     return self + -point
 
+  def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.x == other.x and self.y == self.y
+        else:
+            return False
+
   def distanceToPoint(point1, point2):
     return math.sqrt(pow(point1.x - point2.x, 2) + pow(point1.y - point2.y, 2))
