@@ -56,8 +56,13 @@ class LocalState(State):
             self.availablesPositions.pop(towerId)
             self.removeIncludedHouses(newTower)
         elif action == "removeTower":
-            return 0
-        elif action =="rem55ove":
+            housesAffected = self.getHousesForTower(self.towers[towerId])
+            for i in range(0, len(housesAffected)):
+                if len(self.getTowersForHouse(housesAffected[i])) <= 1:
+                    self.unreached.append(housesAffected[i])
+
+            del self.towers[towerId]
+        elif action =="move":
             return 0
 
     def removeIncludedHouses(self, tower):
@@ -66,12 +71,28 @@ class LocalState(State):
         for i in range(0, len(self.houses)):
             tPosition = tower[0]
             if Point.distanceToPoint(tPosition, self.houses[i]) <= tower[1]:
-                print "unreached"
-                print ','.join(map(str, self.unreached))
-                print "house to remove"
-                print self.houses[i]
                 if self.houses[i] in self.unreached:
                     self.unreached.remove(self.houses[i])
+
+    def getTowersForHouse(self, house):
+        towers = []
+
+        for i in range(0, len(self.towers)):
+            tPosition = self.towers[i][0]
+            if Point.distanceToPoint(tPosition, house) <= self.towers[i][1]:
+                towers.append(self.towers[i])
+
+        return towers
+
+    def getHousesForTower(self, tower):
+        houses = []
+
+        for i in range(0, len(self.houses)):
+            tPosition = tower[0]
+            if Point.distanceToPoint(tPosition, self.houses[i]) <= tower[1]:
+                houses.append(self.houses[i])
+
+        return houses
 
     # Returns a list of possible actions with the current state
     def possibleActions(self):
