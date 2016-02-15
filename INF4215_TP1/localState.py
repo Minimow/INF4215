@@ -2,7 +2,10 @@
 
 from state import *
 from point import *
+from node import *
 import sys
+import copy
+import random
 
 class LocalState(State):
     def __init__(self, towers, availables, unreached):
@@ -63,6 +66,7 @@ class LocalState(State):
         elif action =="move":
             return 0
 
+    #Remove tower from the list
     def removeTower(self, towerIndex):
         housesAffected = self.getHousesForTower(self.towers[towerIndex])
         for i in range(0, len(housesAffected)):
@@ -71,6 +75,7 @@ class LocalState(State):
 
         del self.towers[towerIndex]
 
+    #Update self.unreached base on the tower pssed in parameter
     def removeIncludedHouses(self, tower):
         for i in range(0, len(self.houses)):
             tPosition = tower[0]
@@ -78,6 +83,7 @@ class LocalState(State):
                 if self.houses[i] in self.unreached:
                     self.unreached.remove(self.houses[i])
 
+    # Get all towers that cover the house
     def getTowersForHouse(self, house):
         towers = []
 
@@ -88,6 +94,7 @@ class LocalState(State):
 
         return towers
 
+    # Return true if the tower cover only points that are already covered
     def isTowerUnnecessary(self, tower):
         coveredHouses = self.getHousesForTower(tower)
         for i in range(0, len(coveredHouses)):
@@ -97,6 +104,7 @@ class LocalState(State):
         return True
 
 
+    # get all houses(points) covered by the tower
     def getHousesForTower(self, tower):
         houses = []
 
@@ -147,6 +155,77 @@ class LocalState(State):
                     min = distPoint
                     candidat = i
             return candidat
+
+def search(positions, K, C):
+    initialState = LocalState([], getAvailablePositions(positions), positions)
+    initialState.C = C
+    initialState.K = K
+    initialState.houses = copy.deepcopy(positions)
+    return simulated_annealing_search(initialState)
+
+# get the size of the grid based on the position of the houses(points)
+def getAvailablePositions(positions):
+    minX = 0
+    maxX = 0
+    minY = 0
+    maxY = 0
+
+    for i in range(0, len(positions)):
+        position = positions[i]
+
+        if position.x < minX:
+            minX = position.x
+        if position.x > maxX:
+            maxX = position.x
+        if position.y < minY:
+            minY = position.y
+        if position.y > maxY:
+            maxY = position.y
+
+    availablePositions = []
+    for x in range(minX, maxX):
+        for y in range(minY, maxY):
+            availablePositions.append(Point(x,y))
+
+    return availablePositions
+
+def decrease(t):
+    return t*0.9
+
+def simulated_annealing_search(initialState,T = 120,limit = 0.1,maxSteps = 1000):
+    temperature = T
+    node = Node(initialState)
+    while temperature > limit:
+        step = maxSteps
+        while step > 0:
+            if node.state.isGoal():
+                node.state.show()
+                return copy.deepcopy(node.state)
+            else:
+                candidate = random.choice(node.expand())
+                if candidate.h < node.h:
+                    node = candidate
+                elif random.random() < math.exp(float(node.h - candidate.h)/temperature):
+                    node = candidate
+                step -= 1
+        temperature = decrease(temperature)
+    return None
+
+positions = [Point(6,0), Point(2,2), Point(4,4), Point(6,8), Point(10,8)]
+K = 200
+C = 1
+
+bestState = None
+while bestState == None:
+    bestState = search(positions, K, C)
+
+for i in range(0, 15):
+    node = search(positions, K, C)
+
+    if node != None and node.cost("yt") < bestState.cost("ty"):
+        bestState = node
+
+print bestState.show()
 
 
 
