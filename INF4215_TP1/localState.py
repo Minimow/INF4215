@@ -2,8 +2,7 @@
 
 from state import *
 from point import *
-from localSearch import *
-import random
+import sys
 
 class LocalState(State):
     def __init__(self, towers, availables, unreached):
@@ -37,6 +36,7 @@ class LocalState(State):
 
     # Prints to the console a description of the state
     def show(self):
+        print "cost:" + str(self.cost(""))
         for x in range(0, len(self.towers)):
             print map(str, self.towers[x])
 
@@ -47,6 +47,9 @@ class LocalState(State):
             newRadius = Point.distanceToPoint(tower[0], self.houses[houseId])
             self.towers[towerId][1] = math.ceil(newRadius)
             self.removeIncludedHouses(tower)
+            if self.isTowerUnnecessary(tower):
+                self.removeTower(towerId)
+
         elif action == "addTower":
             radius = Point.distanceToPoint(self.availablesPositions[towerId], self.houses[houseId])
             if (radius < 1):
@@ -56,18 +59,19 @@ class LocalState(State):
             self.availablesPositions.pop(towerId)
             self.removeIncludedHouses(newTower)
         elif action == "removeTower":
-            housesAffected = self.getHousesForTower(self.towers[towerId])
-            for i in range(0, len(housesAffected)):
-                if len(self.getTowersForHouse(housesAffected[i])) <= 1:
-                    self.unreached.append(housesAffected[i])
-
-            del self.towers[towerId]
+            self.removeTower(towerId)
         elif action =="move":
             return 0
 
-    def removeIncludedHouses(self, tower):
-        housesLeft = copy.deepcopy(self.houses)
+    def removeTower(self, towerIndex):
+        housesAffected = self.getHousesForTower(self.towers[towerIndex])
+        for i in range(0, len(housesAffected)):
+            if len(self.getTowersForHouse(housesAffected[i])) <= 1:
+                self.unreached.append(housesAffected[i])
 
+        del self.towers[towerIndex]
+
+    def removeIncludedHouses(self, tower):
         for i in range(0, len(self.houses)):
             tPosition = tower[0]
             if Point.distanceToPoint(tPosition, self.houses[i]) <= tower[1]:
@@ -83,6 +87,15 @@ class LocalState(State):
                 towers.append(self.towers[i])
 
         return towers
+
+    def isTowerUnnecessary(self, tower):
+        coveredHouses = self.getHousesForTower(tower)
+        for i in range(0, len(coveredHouses)):
+            towerCoveringHouse = self.getTowersForHouse(coveredHouses[i])
+            if len(towerCoveringHouse) < 2:
+                return False
+        return True
+
 
     def getHousesForTower(self, tower):
         houses = []
@@ -121,7 +134,7 @@ class LocalState(State):
     # By default, value is 0
     def heuristic(self):
         minimalCost = min(self.K, self.K + (self.C))
-        return len(self.unreached) * minimalCost / len(self.houses)
+        return len(self.unreached) * minimalCost
 
     def closestHouse(self, position):
             nbHouses = len(self.houses)
@@ -135,63 +148,5 @@ class LocalState(State):
                     candidat = i
             return candidat
 
-def search(positions, K, C):
-    initialState = LocalState([], getAvailablePositions(positions), positions)
-    initialState.C = C
-    initialState.K = K
-    initialState.houses = copy.deepcopy(positions)
-    simulated_annealing_search(initialState)
 
-def getAvailablePositions(positions):
-    minX = 0
-    maxX = 0
-    minY = 0
-    maxY = 0
-
-    for i in range(0, len(positions)):
-        position = positions[i]
-
-        if position.x < minX:
-            minX = position.x
-        if position.x > maxX:
-            maxX = position.x
-        if position.y < minY:
-            minY = position.y
-        if position.y > maxY:
-            maxY = position.y
-
-    availablePositions = []
-    for x in range(minX, maxX):
-        for y in range(minY, maxY):
-            availablePositions.append(Point(x,y))
-
-    return availablePositions
-
-def decrease(t):
-    return t*0.9
-
-def simulated_annealing_search(initialState,T = 100,limit = 0.1,maxSteps = 1000):
-    temperature = T
-    node = Node(initialState)
-    while temperature > limit:
-        step = maxSteps
-        while step > 0:
-            if node.state.isGoal():
-                node.state.show()
-                return node
-            else:
-                candidate = random.choice(node.expand())
-                if candidate.h < node.h:
-                    node = candidate
-                elif random.random() < math.exp(float(node.h - candidate.h)/temperature):
-                    node = candidate
-                step -= 1
-        temperature = decrease(temperature)
-    return None
-
-print "hello"
-positions = [Point(6,0), Point(2,2), Point(4,4), Point(6,8), Point(10,8)]
-K = 200
-C = 1
-search(positions, K, C)
 
