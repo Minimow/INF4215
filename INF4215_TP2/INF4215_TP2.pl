@@ -1,19 +1,26 @@
 etudiant(julien).
 
-cours(log1000).
-cours(log2000).
-cours(log3000).
+cours(inf1040).
+cours(inf1010).
+cours(inf1995).
 
-requis(log2000, log1000).
-requis(log3000, log2000).
+requis(inf1995, [inf1040, inf1010]).
 
-reussi(log1000, julien).
+reussi(inf1010, julien).
+reussi(inf1040, julien).
+
+verifierPrerequis(Etudiant, []) :-
+	etudiant(Etudiant).
+
+verifierPrerequis(Etudiant, [Cours | Reste]) :-
+	reussi(Cours, Etudiant),
+	verifierPrerequis(Etudiant, Reste).
 
 elligible(Cours, Etudiant) :-
 	cours(Cours),
 	etudiant(Etudiant),
 	requis(Cours, Requis),
-	reussi(Requis, Etudiant).
+	verifierPrerequis(Etudiant, Requis).
 
 elligible(Cours, Etudiant) :-
 	cours(Cours),
