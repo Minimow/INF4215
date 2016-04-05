@@ -13,9 +13,13 @@ class CustomAI(AI):
         self.random = Random()
         self.random.seed()
 
+        # AI magic numbers
         self.aboutToThreshold = 2
         self.ratioToAlwaysAttack = 3
+        self.ennemiesForHostileTerritory = 3
+        self.priorizeOffenseOnTroopsDrop = True
 
+        # Game status
         self.aboutToWin = False
         self.aboutToLose = False
         self.isWinning = False
@@ -25,6 +29,17 @@ class CustomAI(AI):
         self.aboutToWin = len(allCountries) - len(ownedCountries) < self.aboutToThreshold
         self.aboutToLose = len(ownedCountries) - len(allCountries) < self.aboutToThreshold
         self.isWinning = len(ownedCountries) > len(allCountries) / 2
+
+    def isCountryInHostileTerritory(self, country):
+        count = self.numberOfEnnemies(country)
+        return count >= self.ennemiesForHostileTerritory
+
+    def numberOfEnnemies(self, country):
+        count = 0
+        for neighbour in country.getNeighbours():
+                if neighbour.getOwner() != country.getOwner():
+                    count += 1
+        return count
 
     # Choose a starting country one at the time
     #
@@ -59,8 +74,8 @@ class CustomAI(AI):
         for countryName in ownedCountries:
             country = ownedCountries[countryName]
             for neighbour in country.getNeighbours():
+                # can attack the neighbour
                 if neighbour.getOwner() != country.getOwner():
-                    # can attack the neighbour
                     if country.getNbTroops() / neighbour.getNbTroops() >= self.ratioToAlwaysAttack:
                         allPossibilities.append(AttackAction(country, neighbour, 3))
 
@@ -76,10 +91,26 @@ class CustomAI(AI):
     def placeTroops(self, nbTroopsToPlace, ownedCountries, allCountries):
         placeTroopsAction = []
         rest = nbTroopsToPlace
+        hostileCountries = []
+        hasEnnemiesCountries = []
         for countryName in ownedCountries:
-            nbTroopsAtThisCountry = 1
-            placeTroopsAction.append(PlaceTroopsAction(countryName, nbTroopsAtThisCountry))
-            rest -= nbTroopsAtThisCountry
+            country = ownedCountries[countryName]
+            isHostile = self.isCountryInHostileTerritory(country)
+            if isHostile:
+                hostileCountries.append(country)
+            if self.numberOfEnnemies(country) > 0:
+                hasEnnemiesCountries.append(country)
+
+        if len(hostileCountries) > 0:
+            troopsPerCountry = nbTroopsToPlace / len(hostileCountries)
+            for hostileCountry in hostileCountries:
+                placeTroopsAction.append(PlaceTroopsAction(hostileCountry.getName(), troopsPerCountry))
+                rest -= troopsPerCountry
+        else:
+            troopsPerCountry = nbTroopsToPlace / len(hasEnnemiesCountries)
+            for hostileCountry in hasEnnemiesCountries:
+                placeTroopsAction.append(PlaceTroopsAction(hostileCountry.getName(), troopsPerCountry))
+                rest -= troopsPerCountry
 
         while rest > 0:
             troopAction = self.random.choice(placeTroopsAction)
@@ -148,7 +179,12 @@ class CustomAI(AI):
     #
     # default behaviour : move half of the troops to the new country
     def decideNbTransferingTroops(self, attackResult, startCountry, endCountry, ownedCountries, allCountries):
-        return self.random.randint(1, startCountry.getNbTroops() - 1)
+        newTerritoryHostile = self.isCountryInHostileTerritory(endCountry)
+
+        if newTerritoryHostile:
+            return startCountry.getNbTroops() -1
+        else:
+            return self.random.randint(1, startCountry.getNbTroops() - 1)
 
     # Called when your AI wins an attack
     #
