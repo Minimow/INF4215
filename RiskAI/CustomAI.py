@@ -16,6 +16,7 @@ class CustomAI(AI):
         # AI magic numbers
         self.aboutToThreshold = 2 # Threshold used to determine if the player is about to win or lose (countries left)
         self.ratioToAlwaysAttack = 3 # If the ratio troops/ennemyTroops is higher, the AI always attack
+        self.ratioStopAttack = 1 # if the ratio troops/ennemyTroops is under, we cancel the attack
         self.ennemiesForHostileTerritory = 3  # If a country has more ennemy than this value, the country is in a hostile territory
         self.priorizeOffenseOnTroopsDrop = True # When you have new troops, should you defend or attack
 
@@ -165,6 +166,13 @@ class CustomAI(AI):
     #
     # default behaviour : always choose 3
     def decideNbAttackingDice(self, attackResult, ownedCountries, allCountries):
+        country = attackResult._attackingCountry
+        ennemyCountry = attackResult._defendingCountry
+        if not (ennemyCountry.getNbTroops() == 0):
+            ratio = country.getNbTroops() / ennemyCountry.getNbTroops()
+            if (ratio  < self.ratioStopAttack):
+                return 0
+
         return 3
 
     # Decide the amount of defending dice while defending
