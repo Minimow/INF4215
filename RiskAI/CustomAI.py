@@ -14,10 +14,10 @@ class CustomAI(AI):
         self.random.seed()
 
         # AI magic numbers
-        self.aboutToThreshold = 2
-        self.ratioToAlwaysAttack = 3
-        self.ennemiesForHostileTerritory = 3
-        self.priorizeOffenseOnTroopsDrop = True
+        self.aboutToThreshold = 2 # Threshold used to determine if the player is about to win or lose (countries left)
+        self.ratioToAlwaysAttack = 3 # If the ratio troops/ennemyTroops is higher, the AI always attack
+        self.ennemiesForHostileTerritory = 3  # If a country has more ennemy than this value, the country is in a hostile territory
+        self.priorizeOffenseOnTroopsDrop = True # When you have new troops, should you defend or attack
 
         # Game status
         self.aboutToWin = False
@@ -47,8 +47,12 @@ class CustomAI(AI):
     # ownedCountries : the countries that you own so far
     # allCountries : all countries
     #
-    # return : one element of the remainingCountries list
+    # return : Try to pick a country adjacent to one you already own. If not possible pick at random
     def chooseStartingCountry(self, remainingCountries, ownedCountries, allCountries):
+        for ownedCountry in ownedCountries:
+            for neighbour in ownedCountries[ownedCountry].getNeighbours():
+                if neighbour in remainingCountries:
+                    return neighbour
         return self.random.choice(remainingCountries)
 
     # Place troops before the games begins. You can place only a portion of the available
@@ -68,7 +72,7 @@ class CustomAI(AI):
     # ownedCountries : the countries that you own
     # allCountries : all countries
     #
-    # return : a list of AttackAction.
+    # return : For now only attacks when higher than the alwaysAttack Ratio
     def declareAttacks(self, ownedCountries, allCountries):
         allPossibilities = []
         for countryName in ownedCountries:
@@ -87,7 +91,7 @@ class CustomAI(AI):
     # ownedCountries : the countries that you own
     # allCountries : all countries
     #
-    # return : a list of PlaceTroopsAction
+    # return : Place troops evenly in hostile territory, if no hostile territory plce evenly in countries next to an ennemy
     def placeTroops(self, nbTroopsToPlace, ownedCountries, allCountries):
         placeTroopsAction = []
         rest = nbTroopsToPlace
@@ -126,20 +130,28 @@ class CustomAI(AI):
     # ownedCountries : the countries that you own
     # allCountries : all countries
     #
-    # return : a lsingle MoveTroopAction
+    # return : Find countries in hostile territory. Give troops from the best neighboors (highest troops without ennemy).
     def moveTroops(self, turnAttackResults, ownedCountries, allCountries):
         possibleMoves = []
+
+        hostileCountries = []
         for countryName in ownedCountries:
             country = ownedCountries[countryName]
-            if country.getNbTroops() <= 1:
-                continue
+            isHostile = self.isCountryInHostileTerritory(country)
+            if isHostile:
+                hostileCountries.append(country)
 
-            for neighbour in country.getNeighbours():
-                if neighbour.getOwner() == country.getOwner():
-                    possibleMoves.append(MoveAction(country, neighbour, country.getNbTroops()-1))
+        for hostileCountry in hostileCountries:
+            bestNeighbour = None
+            for neighbour in hostileCountry.getNeighbours():
+                if neighbour.getOwner() == hostileCountry.getOwner():
+                    # bestNeighbour if the neighbour is not in a hostile territory and if it has more troops than the current best.
+                    if (bestNeighbour == None or neighbour.getNbTroops() > bestNeighbour.getNbTroops())\
+                            and not self.isCountryInHostileTerritory(neighbour):
+                        bestNeighbour = neighbour
+            if(bestNeighbour != None):
+                return MoveAction(bestNeighbour, hostileCountry, bestNeighbour.getNbTroops() -1)
 
-        if len(possibleMoves) > 0:
-            return self.random.choice(possibleMoves)
         return None
 
 
@@ -177,12 +189,16 @@ class CustomAI(AI):
     #
     # return : a number between 1 and the amount of troops in startCountry
     #
-    # default behaviour : move half of the troops to the new country
+    # default behaviour : if the new country is hostile, move all troops. if not random.
     def decideNbTransferingTroops(self, attackResult, startCountry, endCountry, ownedCountries, allCountries):
         newTerritoryHostile = self.isCountryInHostileTerritory(endCountry)
 
+        # if hostile we move everything
         if newTerritoryHostile:
             return startCountry.getNbTroops() -1
+        # if the new country has no ennemy we move only 1 troop
+        elif self.numberOfEnnemies(endCountry) == 0:
+            return 1
         else:
             return self.random.randint(1, startCountry.getNbTroops() - 1)
 
