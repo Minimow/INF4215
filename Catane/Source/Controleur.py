@@ -322,7 +322,7 @@ class Controleur(object):
             return d1+d2
 
 
-c = Controleur(['AI','AI','AI','AI'])
+c = Controleur(['Q','AI','AI','AI'])
 c.jouer()
 
 
