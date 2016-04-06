@@ -4,7 +4,7 @@ from RandomAI import *
 from CustomAI import *
 
 ai1 = AI() # agent adverse sans apprentissage machine
-ai2 = CustomAI() # agent adverse aleatoire
+ai2 = CustomAI(True) # agent adverse aleatoire
 
 nbWinAI2 = 0
 for i in xrange(100):

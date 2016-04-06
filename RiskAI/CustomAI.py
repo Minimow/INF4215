@@ -3,22 +3,39 @@ from AI import AI
 from AttackAction import AttackAction
 from MoveAction import MoveAction
 from PlaceTroopsAction import PlaceTroopsAction
+import json
 
 __author__ = 'Julien'
 
+def getMagicNumber(name, chanceOfBest):
+    with open('magicNumbers.txt') as data_file:
+        data = json.load(data_file)
+        print data
+        column = data[name]
+
+        print column["0"]
 
 class CustomAI(AI):
 
-    def __init__(self):
+    def __init__(self, startFresh):
         self.random = Random()
         self.random.seed()
 
-        # AI magic numbers
-        self.aboutToThreshold = 2 # Threshold used to determine if the player is about to win or lose (countries left)
-        self.ratioToAlwaysAttack = 3 # If the ratio troops/ennemyTroops is higher, the AI always attack
-        self.ratioStopAttack = 1 # if the ratio troops/ennemyTroops is under, we cancel the attack
-        self.ennemiesForHostileTerritory = 3  # If a country has more ennemy than this value, the country is in a hostile territory
-        self.priorizeOffenseOnTroopsDrop = True # When you have new troops, should you defend or attack
+        getMagicNumber("ratioToAlwaysAttack", None)
+        if (startFresh):
+            # AI magic numbers
+            self.aboutToThreshold = 2 # Threshold used to determine if the player is about to win or lose (countries left)
+            self.ratioToAlwaysAttack = 3 # If the ratio troops/ennemyTroops is higher, the AI always attack
+            self.ratioStopAttack = 1 # if the ratio troops/ennemyTroops is under, we cancel the attack
+            self.ennemiesForHostileTerritory = 2  # If a country has more ennemy than this value, the country is in a hostile territory
+            self.priorizeOffenseOnTroopsDrop = True # When you have new troops, should you defend or attack
+        else:
+            # AI magic numbers
+            self.aboutToThreshold = 2
+            self.ratioToAlwaysAttack = 3
+            self.ratioStopAttack = 1
+            self.ennemiesForHostileTerritory = 2
+            self.priorizeOffenseOnTroopsDrop = True
 
         # Game status
         self.aboutToWin = False
