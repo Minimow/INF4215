@@ -7,13 +7,6 @@ import json
 
 __author__ = 'Julien'
 
-def getMagicNumber(name, chanceOfBest):
-    with open('magicNumbers.txt') as data_file:
-        data = json.load(data_file)
-        print data
-        column = data[name]
-
-        print column["0"]
 
 class CustomAI(AI):
 
@@ -21,19 +14,19 @@ class CustomAI(AI):
         self.random = Random()
         self.random.seed()
 
-        getMagicNumber("ratioToAlwaysAttack", None)
+        self.magicNumbers = self.loadMagicNumbers()
+
+
         if (startFresh):
             # AI magic numbers
             self.aboutToThreshold = 2 # Threshold used to determine if the player is about to win or lose (countries left)
-            self.ratioToAlwaysAttack = 3 # If the ratio troops/ennemyTroops is higher, the AI always attack
             self.ratioStopAttack = 1 # if the ratio troops/ennemyTroops is under, we cancel the attack
             self.ennemiesForHostileTerritory = 2  # If a country has more ennemy than this value, the country is in a hostile territory
             self.priorizeOffenseOnTroopsDrop = True # When you have new troops, should you defend or attack
         else:
             # AI magic numbers
             self.aboutToThreshold = 2
-            self.ratioToAlwaysAttack = 3
-            self.ratioStopAttack = 1
+            self.ratioStopAttack = self.getMagicNumbersValue(self.magicNumbers["ratioStopAttack"], 90) #9/10 it takes the best choice available other time its random
             self.ennemiesForHostileTerritory = 2
             self.priorizeOffenseOnTroopsDrop = True
 
@@ -41,6 +34,31 @@ class CustomAI(AI):
         self.aboutToWin = False
         self.aboutToLose = False
         self.isWinning = False
+
+    def loadMagicNumbers(self):
+        with open('magicNumbers.txt') as data_file:
+            data = json.load(data_file)
+        return data
+
+    def getMagicNumbersValue(self, data, chanceOfBest):
+
+        if self.random.randrange(0, 100) < chanceOfBest:
+            bestRating = 0
+            bestData = 0
+
+            for value in data:
+                if data[value] > bestRating:
+                    bestData = value
+                    bestRating = data[value]
+
+            return bestData
+        else:
+            randomKey = self.random.choice(data.keys())
+            return randomKey
+
+    def writeNewMagicNumbers(self, data):
+        with open('magicNumbers.txt', 'w') as data_file:
+            json.dump(data, data_file)
 
     def utility(self, ownedCountries, allCountries):
 
@@ -98,7 +116,7 @@ class CustomAI(AI):
             for neighbour in country.getNeighbours():
                 # can attack the neighbour
                 if neighbour.getOwner() != country.getOwner():
-                    if country.getNbTroops() / neighbour.getNbTroops() >= self.ratioToAlwaysAttack:
+                    if country.getNbTroops() / neighbour.getNbTroops() >= float(self.ratioStopAttack):
                         allPossibilities.append(AttackAction(country, neighbour, 3))
 
         return allPossibilities
@@ -284,7 +302,10 @@ class CustomAI(AI):
     #
     # default behaviour : do nothing
     def onGameWon(self, allCountries):
-        pass
+        data = self.loadMagicNumbers()
+        oldRatioToAlwaysAttack = data["ratioStopAttack"][str(self.ratioStopAttack)]
+        data["ratioStopAttack"][str(self.ratioStopAttack)] = oldRatioToAlwaysAttack + 1
+        self.writeNewMagicNumbers(data)
 
     # Called when your AI lost the game
     #
@@ -294,5 +315,8 @@ class CustomAI(AI):
     #
     # default behaviour : do nothing
     def onGameLost(self, allCountries):
-        pass
+        data = self.loadMagicNumbers()
+        oldRatioToAlwaysAttack = data["ratioStopAttack"][str(self.ratioStopAttack)]
+        data["ratioStopAttack"][str(self.ratioStopAttack)] = oldRatioToAlwaysAttack - 1
+        self.writeNewMagicNumbers(data)
 
