@@ -8,7 +8,7 @@ ai1 = AI() # agent adverse sans apprentissage machine
 
 nbWinAI2 = 0
 for i in xrange(100):
-    ai2 = CustomAI(False) # agent adverse aleatoire
+    ai2 = CustomAI() # agent adverse aleatoire
     controller = Controller("Americas", "Normal", "Custom", ai1, ai2)
     winningPlayerIndex = controller.play()
     if winningPlayerIndex == 1:

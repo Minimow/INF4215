@@ -1,1 +1,1 @@
-{"ratioStopAttack": {"1": 1, "0": 301, "3": 4, "2": -2}}
+{"ratioStopAttack": {"1": 1648, "0": 1564, "3": 1015, "2": 1301}, "ennemiesForHostileTerritory": {"1": 1454, "0": 1346, "3": 1346, "2": 1382}}
